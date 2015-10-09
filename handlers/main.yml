@@ -1,15 +1,15 @@
 ---
-- name: restart_apache2
-  service: name=apache2 state=restarted
+- name: restart_httpd
+  service: name=httpd state=restarted
 
-- name: reload_apache2
-  service: name=apache2 state=reloaded
+- name: reload_httpd
+  service: name=httpd state=reloaded
 
-- name: start_apache2
-  service: name=apache2 state=started
+- name: start_httpd
+  service: name=httpd state=started
 
-- name: stop_apache2
-  service: name=apache2 state=stoped
+- name: stop_httpd
+  service: name=httpd state=stoped
 
 - name: restart_nginx
   service: name=nginx state=restarted
@@ -25,3 +25,9 @@
 
 - name: restart_snmpd
   service: name=snmpd state=restarted
+
+- name: restart mariadb
+  service: name=mariadb state=restarted
+
+- name: restart httpd
+  service: name=httpd state=restarted

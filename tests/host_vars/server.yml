@@ -2,7 +2,7 @@
 
 Hosts:
   'spyhc1':
-    IP   : 172.20.20.20
+    IP   : 172.20.20.10
     graph:
       - system
     tree : SYS

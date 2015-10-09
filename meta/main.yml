@@ -4,15 +4,14 @@ galaxy_info:
   license: GPL
   min_ansible_version: 1.6
   platforms:
-    - name: Debian
+    - name: CentOS
       versions:
-        - wheezy
-        - squeeze
+        - 7
 
   categories:
     - monitoring
   dependencies:
-    - { role: apache2 }
+    - { role: httpd }
     - { role: php }
-    - { role: mysql}
+    - { role: mysql }
 version: 2.0

@@ -1,6 +1,6 @@
 $hostnames = <<EOF
 echo "Setting up /etc/hosts"
-echo -e "172.20.20.5\tansible\n172.20.20.20\tcacti-server\n172.20.20.10\tcacti-client1\n172.20.20.11\tcacti-client2\n172.20.20.12\tcacti-client3\n172.20.20.13\tcacti-client4\n172.20.20.14\tcacti-client5\n" >> /etc/hosts
+echo -e "172.20.20.5\tansible\n172.20.20.6\tserver\n172.20.20.10\tclient1\n172.20.20.11\tclient2\n172.20.20.12\tclient3\n172.20.20.13\tclient4\n172.20.20.14\tclient5\n" >> /etc/hosts
 EOF
 
 $packages = <<EOF
@@ -28,7 +28,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   config.vm.define :client1 do |client1|
-    config.vm.hostname = "cacti-client1"
+    config.vm.hostname = "client1"
     client1.vm.network "private_network", ip: "172.20.20.10"
     client1.vm.provider "virtualbox" do |vb|
      vb.customize ["modifyvm", :id, "--memory", "512"]
@@ -37,7 +37,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   config.vm.define :client2 do |client2|
-    config.vm.hostname = "cacti-client2"
+    config.vm.hostname = "client2"
     client2.vm.network "private_network", ip: "172.20.20.11"
     client2.vm.provider "virtualbox" do |vb|
      vb.customize ["modifyvm", :id, "--memory", "512"]
@@ -46,7 +46,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   config.vm.define :client3 do |client3|
-    config.vm.hostname = "cacti-client3"
+    config.vm.hostname = "client3"
     client3.vm.network "private_network", ip: "172.20.20.12"
     client3.vm.provider "virtualbox" do |vb|
      vb.customize ["modifyvm", :id, "--memory", "512"]
@@ -55,7 +55,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   config.vm.define :client4 do |client4|
-    config.vm.hostname = "cacti-client4"
+    config.vm.hostname = "client4"
     client4.vm.network "private_network", ip: "172.20.20.13"
     client4.vm.provider "virtualbox" do |vb|
      vb.customize ["modifyvm", :id, "--memory", "512"]
@@ -64,7 +64,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   config.vm.define :client5 do |client5|
-    config.vm.hostname = "cacti-client5"
+    config.vm.hostname = "client5"
     client5.vm.network "private_network", ip: "172.20.20.14"
     client5.vm.provider "virtualbox" do |vb|
      vb.customize ["modifyvm", :id, "--memory", "512"]
@@ -73,8 +73,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   config.vm.define :server do |server|
-    config.vm.hostname = "cacti-server"
-    server.vm.network "private_network", ip: "172.20.20.20"
+    config.vm.hostname = "server"
+    server.vm.network "private_network", ip: "172.20.20.6"
     server.vm.network "forwarded_port", guest: 80, host: 8080
     server.vm.provider "virtualbox" do |vb|
      vb.customize ["modifyvm", :id, "--memory", "512"]
@@ -82,7 +82,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
   end
 
-  hosts = ["ansible", "cacti-server", "cacti-client1", "cacti-client2", "cacti-client3", "cacti-client4", "cacti-client5"]
+  hosts = ["ansible", "server", "client1", "client2", "client3", "client4", "client5"]
   hosts.each do |i|
     config.vm.define "#{i}" do |node|
         node.vm.provision "shell", inline: $hostnames

@@ -6,7 +6,7 @@
 
 ---
 - hosts: all
-  user: vagrant
+  user: root
   sudo: True
   gather_facts:  yes
   vars:
@@ -15,20 +15,19 @@
     webui_admin_user      : helldorado
     webui_admin_password  : 2A2169234F6BC136j0CFC29EEF8
     htpassword_admin      : DQWWEaTVmoi2I
-    archi_name            : SPYNOL
+    archi_name            : MTRAVIS
     archi_subnet          : '172.20.20'
-    default_community     : spynol
+    default_community     : snmpdata
     cacti_db_hostname     : localhost
     cacti_db_password     : tNSimlfnER7d6
     cacti_mysql_mon_user  : monitoring
     cacti_mysql_mon_pass  : 4vtYd5axfavQo
     RRA_VG_NAME           : system
-    #RRA_LV_NAME           : var_lib_rra
-    RRA_LV_SIZE           : 5G
-    RRA_MOUNT_POINT       : '/var/lib/rra'
     DEFAULT_IP            : '127.0.0.1'
     WHITELIST             : ''
     cacti_server          : server
+    domain_name           : cacti
+
 
      ## User Access and Permissions
     Users:

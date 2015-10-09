@@ -28,6 +28,7 @@ UPDATE settings SET value='{{ cacti_scripts_server_timeout }}' WHERE name='scrip
 UPDATE settings SET value='{{ cacti_max_title_graph }}' WHERE name='max_title_graph';
 UPDATE settings SET value='{{ cacti_max_title_field_lenght }}' WHERE name='max_data_query_field_length';
 UPDATE settings SET value='{{ cacti_max_title_data_source }}' WHERE name='max_title_data_source';
+UPDATE settings set value='{{ cacti_root_dir }}' WHERE name='path_webroot';
 UPDATE host_snmp_cache SET present=0 WHERE host_id='1' AND snmp_query_id='6';
 UPDATE graph_tree SET name="{{ archi_name }}" WHERE id=1;
 UPDATE user_auth SET username='{{ webui_admin_user }}' WHERE username='admin';

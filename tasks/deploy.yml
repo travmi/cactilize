@@ -6,18 +6,32 @@
 #
 # OS: Debian6 Debian7
 
+- name: Install mariadb
+  yum: name=mariadb-server state=latest
+
+- name: Start mariadb
+  service: name=mariadb state=started enabled=yes
+
+- name: Copy mariadb config
+  template: src=etc/my.cnf.j2 dest=/etc/my.cnf
+  notify: restart mariadb
+
 - name: Check if Cacti root dir is present
   stat: path={{ cacti_root_dir  }}
   ignore_errors: true
   register: cacti_web_root
   changed_when: cacti_root_dir.stat.isdir is defined and cacti_root_dir.stat.isdir == true
 
+- debug: var=cacti_web_root
+
+# Run mysql command and grep for cacti database
 - name: check if Cacti DB exists
-  shell: mysql -e "show databases;"
+  shell: mysql -e "show databases;" | grep {{ cacti_db_name }}
   ignore_errors: true
   register: databases
   changed_when: databases.stdout == 1
 
+# If cacti database exists and force deploy is false exit cacti installation
 - name: Exit Cactilize execution
   fail: msg="Cacti or Cacti DB exist, please add deploy=force to extra-vars )"
   when: (cacti_web_root.stat.exists or databases.stdout.find('{{cacti_db_name}}') != -1) and deploy != "force"
@@ -35,6 +49,12 @@
 - name: Create SSH directory
   file: path={{ cacti_conf_dir }}/.ssh state=directory owner={{ cacti_user }} group={{ cacti_user }}
 
+- name: Install Apache
+  yum: name=httpd state=latest
+
+- name: Start Apache
+  service: name=httpd state=started enabled=yes
+
 - name: Creates LOG directory
   file: path={{ cacti_log_dir }} state=directory owner={{ cacti_user }} group={{ apache_group }} mode=0775
 
@@ -46,26 +66,17 @@
     owner={{ cacti_user }}
     group={{ apache_group }}
 
-- name: Create LV for RRAs DATA
-  lvol: vg={{ RRA_VG_NAME }} lv={{ RRA_LV_NAME }} size={{ RRA_LV_SIZE }}
-  when: RRA_LV_NAME is defined
-  register: lvcreate
+- name: Install the PHP Repository Webtatic
+  yum: name=https://mirror.webtatic.com/yum/el7/webtatic-release.rpm state=present
 
-- name: MKFS RRAs LV
-  filesystem: fstype=ext4 dev=/dev/{{ RRA_VG_NAME }}/{{ RRA_LV_NAME }}
-  when: RRA_LV_NAME is defined and lvcreate|success
-  register: MKFS
-
-- name: CREATE MOUNT POINT FOR RRAs
-  mount: name={{ RRA_MOUNT_POINT }} src=/dev/{{ RRA_VG_NAME }}/{{ RRA_LV_NAME }} fstype=ext4  opts=defaults state=mounted
-  when: RRA_LV_NAME is defined and MKFS|success
-  register: MOUNTED
+- name: Install the Webtatic GPG key
+  rpm_key: state=present key=https://mirror.webtatic.com/yum/RPM-GPG-KEY-webtatic-el7
 
 - name: Install requires
-  apt: name={{ item }} update-cache=yes state=present
+  yum: name={{ item }} update_cache=yes state=present
   with_items:
     - "{{ cacti_required_packages }}"
-    - python-mysqldb
+    - MySQL-python
     - python-passlib
 
 - name: Download Cacti version {{ cacti_version }}
@@ -74,8 +85,9 @@
 - name: Deploy Cacti version {{ cacti_version }} for {{ archi }}
   unarchive: src={{ cactilize_temp_dir }}/cacti-{{ cacti_version }}.tar.gz dest={{ cactilize_temp_dir }} copy=no
 
+# Attempting to use rsync to prevent errors with already existing directory with 'mv'
 - name: Move to specified cacti root
-  command: mv {{ cactilize_temp_dir }}/cacti-{{ cacti_version }} {{ cacti_root_dir }}
+  command: rsync -av --delete {{ cactilize_temp_dir }}/cacti-{{ cacti_version }} {{ cacti_root_dir }}
 
 - name: Create Template directory
   file: path={{ cacti_root_dir  }}/templates owner=root group=root state=directory
@@ -94,33 +106,29 @@
 
 - name: Populate Cacti database
   mysql_db: name={{ cacti_db_name  }} state=import target={{ cacti_db_populate }}
+  when: databases.rc == 1
 
-- name: Cacti Alias deploiement Step 1
-  template: src=etc/apache.conf.j2 dest={{ cacti_apache_conf }} owner=root group=root mode=0440
-  when: domain_name is not defined
-  register: ALIAS
+- name: Cacti Alias deployment Step 1
+  template: src=etc/httpd.conf.j2 dest={{ cacti_apache_conf }} owner=root group=root mode=0440
+  notify: restart_httpd
 
-- name: Cacti Alias deploiement Step 2
-  file: src={{ cacti_apache_conf }} dest=/etc/apache2/conf.d/cacti.conf state=link force=yes
-  when: domain_name is not defined and ALIAS|success
-  notify: reload_apache2
-
-- name: Cacti Vhost deploiement Step 1
-  template: src=etc/vhost.conf.j2 dest=/etc/apache2/sites-available/{{ domain_name }}.conf owner=root group=root mode=0440
-  when: domain_name is defined
+- name: Cacti Vhost deployment Step 1
+  template: src=etc/cacti.conf.j2 dest=/etc/httpd/conf.d/{{ domain_name }}.conf owner=root group=root mode=0440
   register: VHOST
+  notify: restart httpd
 
-- name: Cacti Vhost deploiement Step 2
-  command: a2ensite {{ domain_name }}.conf
-  when: domain_name is defined and VHOST|success
-  notify: reload_apache2
+- name: Add php.ini
+  copy: src=php.ini dest=/etc/php.ini
+  notify: restart httpd
+
+- debug: var=VHOST
 
 - name: Set Admin Htpasswd
-  htpasswd: path=/etc/apache2/.htpass_cacti name={{ webui_admin_user }} password={{ htpassword_admin }} owner=root group={{ apache_group }} mode=0440
+  htpasswd: path=/etc/httpd/conf.d/.htpass_cacti name={{ webui_admin_user }} password={{ htpassword_admin }} owner=root group={{ apache_group }} mode=0440
   tags: htpasswd
 
 - name: Set Users Htpasswd
-  htpasswd: path=/etc/apache2/.htpass_cacti name={{ item.key }} password={{ item.value.htpassword }} owner=root group={{ apache_group }} mode=0440
+  htpasswd: path=/etc/httpd/conf.d/.htpass_cacti name={{ item.key }} password={{ item.value.htpassword }} owner=root group={{ apache_group }} mode=0440
   with_dict: Users
   tags: htpasswd
 
@@ -131,31 +139,21 @@
   mysql_db: name={{ cacti_db_name }} state=import target={{ cactilize_temp_dir }}/postinstall.sql
 
 - name: Post Install Step 2
-  file: path={{ RRA_MOUNT_POINT }}/cacti owner={{ apache_user }} group={{ apache_group }} state=directory
-  when: MOUNTED|success
+  file: path={{ cacti_rra_dir }} owner={{ cacti_user }} group={{ apache_group }} state=directory
 
 - name: Post Install Step 3
-  file: path={{ cacti_root_dir }}/rra state=absent
-  when: MOUNTED|success
-
-- name: Post Install Step 4
-  file: src={{ RRA_MOUNT_POINT }}/cacti dest={{ cacti_root_dir }}/rra  owner={{ apache_user }} group={{ apache_group }} state=link force=yes
-  when: MOUNTED|success
-
-- name: Post Install Step 5 [ Only If LV not used]
-  file: path={{ cacti_rra_dir }} owner={{ cacti_user }} group={{ apache_group }} state=directory
-  when: RRA_LV_NAME is not defined
-
-- name: Post Install Step 6 [ Only If LV not used]
-  file: src={{ cacti_rra_dir }} dest={{ cacti_root_dir }}/rra  owner={{ cacti_user }} group={{ apache_group }} state=link
-  when: RRA_LV_NAME is not defined
-
-- name: Post Install Step 7 [ Create cacti user]
   user: name=cacti comment="Cacti user for poller process" generate_ssh_key=yes ssh_key_file={{ cacti_conf_dir }}/.ssh/id_rsa
   when: deploy or (generate_ssh_key is defined and generate_ssh_key)
 
-- name: Get SSH KEY
-  fetch: src={{ cacti_conf_dir }}/.ssh/id_rsa.pub dest=roles/cactilize/files/id_rsa.pub flat=yes
+- name: Install bundler gem to run Gemfil
+  gem: name=bundler state=latest
+
+- name: Install Ruby Gems for ruby wrapper scripts
+  bundler: state=latest
+
+# No idea what this is for at the moment
+#- name: Get SSH KEY
+#  fetch: src={{ cacti_conf_dir }}/.ssh/id_rsa.pub dest=roles/cactilize/files/id_rsa.pub flat=yes
 
 - name: Copy Scripts File
   template: src={{ item }} dest={{ cacti_root_dir }}/scripts/ owner={{ cacti_user }} group={{ apache_group }} mode=0440
@@ -195,8 +193,8 @@
 - name: action | Ensure conf file have 0440 mode
   command: chmod 0440 {{ cacti_config_file }}
 
-- name: action | Ensure RRAs link is writable
-  command: chown -h {{ cacti_user }}:{{ apache_group }} {{ cacti_root_dir }}/rra
+#- name: action | Ensure RRAs link is writable
+#  command: chown -h {{ cacti_user }}:{{ apache_group }} {{ cacti_root_dir }}/rra
 
 - name: action | Ensure RRA dir is writable
   file:
@@ -216,7 +214,7 @@
     hour="*"
     day="*"
     month="*"
-    job="php --define suhosin.memory_limit=512M /usr/share/cacti/poller.php 2>&1 >/dev/null | if [ -f /usr/bin/ts ] ; then ts ; else tee ; fi >> {{ cacti_log_dir }}/cacti.log"
+    job="php --define suhosin.memory_limit=512M {{ cacti_root_dir }}/poller.php 2>&1 >/dev/null | if [ -f /usr/bin/ts ] ; then ts ; else tee ; fi >> {{ cacti_log_dir }}/cacti.log"
 
 - name: Report
   template: src=report.j2 dest=/root/.cacti owner=root group=root mode=0400

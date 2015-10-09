@@ -3,16 +3,16 @@
 # /!\  PLEASE ! Do not edit this setting unless you know what you are doing
 
 # CACTI variables
-cacti_root_dir                      : '/usr/share/cacti'
+cacti_root_dir                      : '/var/www/cacti'
 cacti_root_dir_purge                : false
 cacti_conf_dir                      : '/etc/cacti'
 cacti_conf_dir_purge                : false
-cacti_rra_dir                       : '/var/lib/rra/cacti'
+cacti_rra_dir                       : '{{ cacti_conf_dir }}/rra'
 cacti_rra_dir_purge                 : false
 cacti_log_dir                       : '/var/log/cacti'
 cacti_log_dir_purge                 : false
 cacti_config_file                   : '{{ cacti_conf_dir }}/config.php'
-cacti_apache_conf                   : '{{ cacti_conf_dir }}/apache.conf'
+cacti_apache_conf                   : '{{ cacti_conf_dir }}/httpd.conf'
 cacti_cron_file                     : '/etc/cron.d/cacti'
 cacti_db_name                       : 'cacti_ansible'
 cacti_db_user                       : 'cacti_ansible'
@@ -60,16 +60,16 @@ cacti_add_tree                      : '{{ cacti_cli }}/add_tree.php'
 cacti_host_update_template          : '{{ cacti_cli }}/host_update_template.php'
 cactilize_temp_dir                  : '/tmp/cactilize'
 cacti_user                          : cacti
-apache_user                         : 'www-data'
-apache_group                        : 'www-data'
+apache_user                         : 'apache'
+apache_group                        : 'apache'
 apache_configtest_enable            : true
 cacti_package_version               : undef
 cacti_package_source                : 'http://www.cacti.net/downloads'
 cacti_version                       : '0.8.8b'
-cacti_required_packages             : ['apache2', 'php5', 'php5-mysql', 'php5-cli', 'php5-snmp', 'snmp', 'snmpd', 'rrdtool']
-cacti_client_required_packages      : ['snmp' , 'snmpd']
+cacti_required_packages             : ['httpd', 'php55w', 'php55w-mysql', 'php55w-cli', 'php55w-snmp', 'net-snmp', 'net-snmp-utils', 'rrdtool', 'ruby', 'rubygems', 'ruby-devel']
+cacti_client_required_packages      : ['net-snmp' , 'net-snmp-utils']
 snmp_conf_dir                       : "/etc/snmp"
-apache_conf_dir                     : "/etc/apache2"
+apache_conf_dir                     : "/etc/httpd/conf"
 nginx_conf_dir                      : "/etc/nginx"
 is_alias                            : false
 PORT_HTTP                           : 80
@@ -170,4 +170,4 @@ cacti_tree_parentnode_service : SERVICES
 Tree                          : []
 
 ## IFACE
-cacti_client_iface: eth0
+cacti_client_iface: ens192

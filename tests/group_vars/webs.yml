@@ -1,11 +1,11 @@
 ---
-cacti_client_iface: eth1
-apache_server: true
-nginx_server: true
+cacti_client_iface: ens192
+apache_server: false
+nginx_server: false
 
 Hosts:
-  '':
-    #IP   : 172.20.20.10
+  'client1':
+    IP   : 172.20.20.10
     graph:
       - system
       - apache

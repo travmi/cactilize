@@ -22,12 +22,6 @@
     cacti_db_password     : tNSimlfnER7d6
     cacti_mysql_mon_user  : monitoring
     cacti_mysql_mon_pass  : 4vtYd5axfavQo
-    RRA_VG_NAME           : system
-    #RRA_LV_NAME           : var_lib_rra
-    RRA_LV_SIZE           : 5G
-    RRA_MOUNT_POINT       : '/var/lib/rra'
-    DEFAULT_IP            : '127.0.0.1'
-    WHITELIST             : ''
     cacti_server          : server
 
      ## User Access and Permissions

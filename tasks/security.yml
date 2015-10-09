@@ -11,12 +11,14 @@
   register: cacti_exist
   when: p.stat.isdir is defined and p.stat.isdir == true
 
+- debug: var=cacti_exist
 
 - name: check if Cacti DB exists
   shell: mysql -Bse 'show databases;' | grep {{ cacti_db_name }}
   register: dbstatus
   changed_when: dbstatus.rc == 1 and not dbstatus.stdout
 
+- debug: var=dbstatus
 
 - vars_prompt:
   name: "Are sure you want to redeploy ?"
